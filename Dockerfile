@@ -1,21 +1,22 @@
-# Use the official Go image as a parent image
-FROM golang:1.21-alpine
+# Use the official Go image to create a build artifact.
+FROM golang:1.21-alpine AS builder
 
-# Set the working directory inside the container
-WORKDIR /app
+# Set the working directory outside $GOPATH to enable the support for modules.
+WORKDIR /src
 
-# Copy the local package files to the container's workspace
-# COPY go.mod go.sum ./
-# RUN go mod download
+# Copy go.mod and go.sum to download dependencies
+COPY go.* ./
+RUN go mod download
 
-# Copy the rest of the application's code
+# Copy the rest of the application's source code
 COPY . .
 
-# Build the application
-RUN go build -o main ./cmd/service
+# Build the binary.
+RUN CGO_ENABLED=0 go build -o /bin/app ./cmd/service
 
-# Expose port 8080 to the outside world
-EXPOSE 8080
+# Use a small image to run the application
+FROM alpine:3.19
+COPY --from=builder /bin/app /bin/app
 
 # Command to run the executable
-CMD ["./main"]
+ENTRYPOINT ["/bin/app"]
