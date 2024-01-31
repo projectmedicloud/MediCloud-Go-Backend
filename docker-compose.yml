@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # PostgreSQL service
+  postgres:
+    image: postgres:latest
+    container_name: medicloud_postgres
+    ports:
+      - "5432:5432" # Map PostgreSQL default port to host
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER} # Use environment variable from .env file
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # Use environment variable from .env file
+      POSTGRES_DB: ${POSTGRES_DB} # Use environment variable from .env file
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persist database data
+    restart: unless-stopped
+
+  # Go application service
+  app:
+    build: . # Build the Docker image using the Dockerfile in the current directory
+    container_name: medicloud_app
+    ports:
+      - "8080:8080" # Map the port used by your Go application to the host
+    environment:
+      DB_HOST: postgres # Use the service name of your PostgreSQL container
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER} # Use environment variable from .env file
+      DB_PASSWORD: ${POSTGRES_PASSWORD} # Use environment variable from .env file
+      DB_NAME: ${POSTGRES_DB} # Use environment variable from .env file
+    depends_on:
+      - postgres # Ensure the Go application starts after the PostgreSQL service
+    restart: unless-stopped
+    env_file:
+      - .env # Load additional environment variables from .env file if needed
+
+volumes:
+  postgres_data: # Named volume for persisting PostgreSQL data
