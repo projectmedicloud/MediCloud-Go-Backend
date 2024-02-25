@@ -58,6 +58,38 @@ func GetTestTableData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// writes data to the database
+func WriteTestTableData(w http.ResponseWriter, r *http.Request) {
+	log.Println("Handling WriteTestTableData request")
+
+	database, err := db.Connect()
+	if err != nil {
+		handleError(w, err, "Error connecting to database")
+		return
+	}
+	defer database.Close()
+
+	log.Println("Successfully connected to the database")
+
+	// Parse the request body
+	var t TestTableData
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		handleError(w, err, "Error decoding request body")
+		return
+	}
+
+	// Insert the data into the database
+	_, err = database.Exec("INSERT INTO test_table (test_value) VALUES (?)", t.TestValue)
+	if err != nil {
+		handleError(w, err, "Error inserting test data")
+		return
+	}
+
+	log.Println("Successfully inserted test data")
+
+	w.WriteHeader(http.StatusCreated)
+}
+
 func handleError(w http.ResponseWriter, err error, message string) {
 	log.Printf("%s: %v", message, err)
 	http.Error(w, "Internal Server Error\n"+err.Error(), http.StatusInternalServerError)
